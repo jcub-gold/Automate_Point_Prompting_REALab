@@ -5,12 +5,15 @@ from tkinter import ttk, messagebox, filedialog, simpledialog
 from matplotlib import pyplot as plt
 import os
 from matplotlib.widgets import TextBox, Button
+import csv
 
 class VideoFrameSelector:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Video Frame Selector")
         self.root.geometry("800x400")
+        
+        self.video_filename = None  # Add this line
         
         # Main container
         self.main_frame = ttk.Frame(self.root, padding="20")
@@ -47,6 +50,7 @@ class VideoFrameSelector:
             filetypes=(("MP4 files", "*.mp4"), ("All files", "*.*"))
         )
         if video_path:
+            self.video_filename = os.path.basename(video_path)  # Store the filename
             self.load_video(video_path)
 
     def load_video(self, video_path):
@@ -166,9 +170,14 @@ class VideoFrameSelector:
                 plus_button = Button(plus_button_ax, '+')
                 plus_button.on_clicked(self.add_object_entry)
                 
+                # Add save button next to clear button
+                save_button_ax = plt.axes([0.825, 0.01, 0.06, 0.03])
+                save_button = Button(save_button_ax, 'Save')
+                save_button.on_clicked(self.save_points)
+                
                 # Add clear button (adjusted position and size)
                 clear_button_ax = plt.axes([0.895, 0.01, 0.06, 0.03])
-                clear_button = Button(clear_button_ax, 'Clear')  # Updated text
+                clear_button = Button(clear_button_ax, 'Clear')
                 clear_button.on_clicked(self.clear_points)
                 
                 # Connect the click event
@@ -358,6 +367,41 @@ class VideoFrameSelector:
         if current_frame < self.frame_count - 1:
             self.frame_slider.set(current_frame + 1)
             self.update_frame_number(current_frame + 1)
+
+    def save_points(self, event):
+        if not self.object_points:
+            messagebox.showinfo("Info", "No points to save.")
+            return
+            
+        try:
+            frame_num = int(self.frame_slider.get())
+            base_filename = os.path.splitext(self.video_filename)[0]
+            dir_path = f'annotations/{base_filename}'
+            os.makedirs(dir_path, exist_ok=True)
+            csv_filename = f'{dir_path}/points.csv'
+            
+            file_exists = os.path.exists(csv_filename)
+            mode = 'a' if file_exists else 'w'
+            
+            with open(csv_filename, mode, newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                if not file_exists:
+                    writer.writerow(['video_name', 'frame_number', 'object_name', 'x', 'y'])
+                
+                for obj_name, obj_data in self.object_points.items():
+                    for x, y in obj_data['points']:
+                        writer.writerow([
+                            self.video_filename,
+                            frame_num,
+                            obj_name,
+                            int(x),
+                            int(y)
+                        ])
+            
+            messagebox.showinfo("Success", f"Points saved to {csv_filename}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save points: {str(e)}")
 
 if __name__ == "__main__":
     app = VideoFrameSelector()
