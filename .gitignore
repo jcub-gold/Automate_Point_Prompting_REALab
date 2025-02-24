@@ -170,5 +170,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# ignore any videos
+# Ignore any videos
 videos/*
