@@ -171,4 +171,4 @@ cython_debug/
 .pypirc
 
 # Ignore any videos
-videos/*
+videos/REU_example_input_video_SAM.mp4
