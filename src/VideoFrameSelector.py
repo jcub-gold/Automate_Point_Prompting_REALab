@@ -380,29 +380,37 @@ class VideoFrameSelector:
             os.makedirs(dir_path, exist_ok=True)
             csv_filename = f'{dir_path}/points.csv'
             
-            file_exists = os.path.exists(csv_filename)
-            mode = 'a' if file_exists else 'w'
+            # Read existing entries to avoid duplicates
+            existing_entries = set()
+            if os.path.exists(csv_filename):
+                with open(csv_filename, 'r', newline='') as csvfile:
+                    reader = csv.reader(csvfile)
+                    next(reader)  # Skip header
+                    for row in reader:
+                        # Create a tuple of the key fields to check for duplicates
+                        entry = (row[0], int(row[1]), row[2], int(row[3]), int(row[4]))
+                        existing_entries.add(entry)
+            
+            # Open file in append mode if it exists, write mode if it doesn't
+            mode = 'a' if os.path.exists(csv_filename) else 'w'
+            new_points_added = 0
             
             with open(csv_filename, mode, newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                if not file_exists:
+                if mode == 'w':  # Only write header for new files
                     writer.writerow(['video_name', 'frame_number', 'object_name', 'x', 'y'])
                 
                 for obj_name, obj_data in self.object_points.items():
                     for x, y in obj_data['points']:
-                        writer.writerow([
-                            self.video_filename,
-                            frame_num,
-                            obj_name,
-                            int(x),
-                            int(y)
-                        ])
+                        entry = (self.video_filename, frame_num, obj_name, int(x), int(y))
+                        if entry not in existing_entries:
+                            writer.writerow(list(entry))
+                            new_points_added += 1
             
-            messagebox.showinfo("Success", f"Points saved to {csv_filename}")
+            if new_points_added > 0:
+                messagebox.showinfo("Success", f"Added {new_points_added} new points to {csv_filename}")
+            else:
+                messagebox.showinfo("Info", "No new points to add (all points already exist in file)")
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save points: {str(e)}")
-
-if __name__ == "__main__":
-    app = VideoFrameSelector()
-    app.run()
