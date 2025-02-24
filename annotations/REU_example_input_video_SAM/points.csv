@@ -1,2 +1,8 @@
 video_name,frame_number,object_name,x,y
-REU_example_input_video_SAM.mp4,2,object1,596,1358
+REU_example_input_video_SAM.mp4,4,Left Cabnit Door,522,1179
+REU_example_input_video_SAM.mp4,4,Left Cabnit Door,571,1341
+REU_example_input_video_SAM.mp4,4,Left Cabnit Door,355,1154
+REU_example_input_video_SAM.mp4,4,Right Cabnit Door,929,1258
+REU_example_input_video_SAM.mp4,4,Right Cabnit Door,921,1063
+REU_example_input_video_SAM.mp4,653,Test,833,1370
+REU_example_input_video_SAM.mp4,653,Test,833,1375
