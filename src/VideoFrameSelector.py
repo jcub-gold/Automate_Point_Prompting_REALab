@@ -45,6 +45,9 @@ class VideoFrameSelector:
         self.current_fig = None
         self.current_ax = None
 
+        self.image_folder = None
+        self.image_files = []
+
     """
     Method: browse_video
     --------------------------
@@ -52,13 +55,48 @@ class VideoFrameSelector:
     Once a video is selected, it stores the filename and calls load_video to process the selected file.
     """
     def browse_video(self):
-        video_path = filedialog.askopenfilename(
-            title="Select Video File",
-            filetypes=(("MP4 files", "*.mp4"), ("All files", "*.*"))
+        choice = messagebox.askquestion(
+            "Input Type", "Select 'Yes' for video file (.mp4), 'No' for folder of JPGs."
         )
-        if video_path:
-            self.video_filename = os.path.basename(video_path)
-            self.load_video(video_path)
+        if choice == 'yes':
+            video_path = filedialog.askopenfilename(
+                title="Select Video File",
+                filetypes=(("MP4 files", "*.mp4"), ("All files", "*.*"))
+            )
+            if video_path:
+                self.video_filename = os.path.basename(video_path)
+                self.image_folder = None
+                self.image_files = []
+                self.load_video(video_path)
+        else:
+            folder_path = filedialog.askdirectory(
+                title="Select Folder of JPGs"
+            )
+            if folder_path:
+                self.image_folder = folder_path
+                self.video_filename = os.path.basename(folder_path)
+                self.cap = None
+                self.load_image_folder(folder_path)
+
+    def load_image_folder(self, folder_path):
+        # Only include supported image extensions
+        frame_names = [
+            p for p in os.listdir(folder_path)
+            if os.path.splitext(p)[-1].lower() in [".jpg", ".jpeg", ".png"]
+        ]
+        # Sort by integer frame number extracted from filename (before extension)
+        try:
+            frame_names.sort(key=lambda p: int(os.path.splitext(p)[0]))
+        except ValueError:
+            messagebox.showerror("Error", "Image filenames must be integers (e.g., 0.jpg, 1.jpg, ...)")
+            return
+
+        self.image_files = [os.path.join(folder_path, f) for f in frame_names]
+        self.frame_count = len(self.image_files)
+        if self.frame_count == 0:
+            messagebox.showerror("Error", "No JPG/PNG files found in folder.")
+            return
+        self.show_frame_controls()
 
     """
     Method: load_video
@@ -162,8 +200,8 @@ class VideoFrameSelector:
     for marking objects in the frame.
     """
     def select_frame(self):
-        if not self.cap:
-            messagebox.showerror("Error", "No video loaded")
+        if self.cap is None and not self.image_files:
+            messagebox.showerror("Error", "No video or image folder loaded")
             return
             
         try:
@@ -370,13 +408,26 @@ class VideoFrameSelector:
     space and returns it. Prints status messages about frame retrieval.
     """
     def get_frame(self, frame_num):
-        print(f"[INFO] Retrieving frame {frame_num}/{self.frame_count}...")
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
-        ret, frame = self.cap.read()
-        if ret:
-            return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        print(f"[WARNING] Frame {frame_num} could not be retrieved.")
-        return None
+        if self.cap is not None:
+            # ...existing code for video...
+            print(f"[INFO] Retrieving frame {frame_num}/{self.frame_count} from video...")
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+            ret, frame = self.cap.read()
+            if ret:
+                return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            print(f"[WARNING] Frame {frame_num} could not be retrieved.")
+            return None
+        elif self.image_files:
+            print(f"[INFO] Retrieving frame {frame_num}/{self.frame_count} from images...")
+            if 0 <= frame_num < len(self.image_files):
+                img = cv2.imread(self.image_files[frame_num])
+                if img is not None:
+                    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            print(f"[WARNING] Image frame {frame_num} could not be retrieved.")
+            return None
+        else:
+            print("[WARNING] No video or image folder loaded.")
+            return None
 
     """
     Method: run

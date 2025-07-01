@@ -173,3 +173,5 @@ cython_debug/
 # Ignore any videos
 videos/REU_example_input_video_SAM.mp4
 .DS_Store
+
+rgb/
